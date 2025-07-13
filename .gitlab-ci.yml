@@ -1,0 +1,14 @@
+# This is the YAML code used to deploy the Profile card via Gitlab
+
+image: alpine:latest
+
+pages:
+  script:
+    - mkdir public
+    - cp -r "My Profile Card"/* public
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
+
