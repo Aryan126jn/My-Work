@@ -1,4 +1,5 @@
 AWS Cost & Usage Monitoring Dashboard
+
 📌 Project Overview
 
 Cloud costs can quickly spiral out of control without proper visibility. This project builds a Cost & Usage Monitoring Dashboard using Grafana, Prometheus, Docker, and AWS Free Tier services. The goal is to simulate and visualize AWS-like usage metrics (dynamic & mock data), while also integrating real AWS Cost Explorer metrics to demonstrate a realistic DevOps monitoring workflow.
@@ -46,3 +47,4 @@ Interactive Grafana dashboards with trends & alerts.
 Fully containerized setup → runs locally with zero cost.
 
 AWS integration for realistic cloud cost insights.
+
