@@ -7,7 +7,7 @@ fortunes = [
     " Terraform modules are like Lego for adults.",
     " Python Lambda says hi, Aryan!",
     " Jenkins will behave today (maybe).",
-    " AWS bills shrink when you IaC.",
+     " AWS bills shrink when you IaC.",
     " Deploy early, deploy often, but always monitor logs."
 ]
 
