@@ -1,0 +1,43 @@
+# ------------------------
+# Terraform
+
+.terraform.lock.hcl
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+
+
+# ------------------------
+# Python
+# ------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+*.env
+*.log
+
+# ------------------------
+# Docker
+# ------------------------
+*.tar
+docker-compose.override.yml
+
+# ------------------------
+# Jenkins / local data
+# ------------------------
+app/jenkins_home/
+*.secret
+
+# ------------------------
+# IDEs / OS
+# ------------------------
+.vscode/
+.idea/
+.DS_Store
+*.swp
+Thumbs.db
