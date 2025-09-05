@@ -5,7 +5,7 @@ on:
     branches:
       - Folder-1         # Change to your branch
     paths:
-      - 'Folder-1/app/**'  # Folder containing Dockerfile
+      - 'app/**'  # Folder containing Dockerfile
 
 jobs:
   deploy:
