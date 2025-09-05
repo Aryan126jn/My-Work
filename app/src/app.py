@@ -8,7 +8,7 @@ fortunes = [
     " Python Lambda says hi, Aryan!",
     " Jenkins will behave today (maybe).",
     " AWS bills shrink when you IaC.",
-    " Deploy early, deploy often, but always monitor logs."
+#    " Deploy early, deploy often, but always monitor logs."
 ]
 
 # Optional: Food-themed fortunes
