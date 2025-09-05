@@ -1,28 +1,28 @@
-import json
 import random
+from flask import Flask, jsonify  # type: ignore
+
+app = Flask(__name__)
 
 fortunes = [
-    "🚀 Today’s a great day to learn Terraform.",
-    "🐍 Python Lambda says hi, Aryan!",
-    "💡 Jenkins will behave today (maybe).",
-    "🔥 AWS bills shrink when you IaC.",
-    "☁️ Cloud is just someone else’s computer."
+    " Terraform modules are like Lego for adults.",
+    " Python Lambda says hi, Aryan!",
+    " Jenkins will behave today (maybe).",
+    " AWS bills shrink when you IaC.",
+    " Deploy early, deploy often, but always monitor logs."
 ]
 
-#fortunes = [
-#    "🤖 AI is learning faster than ever!",
-#    "📱 Your smartphone might be smarter than you think.",
-#    "💾 Data is the new gold in the digital age."
-#]
-def lambda_handler(event=None, context=None):
-    """Simulates AWS Lambda handler returning a random fortune."""
-    fortune = random.choice(fortunes)
-    return {
-        "statusCode": 200,
-        "body": fortune
-    }
+# Optional: Food-themed fortunes
+# food_fortunes = [
+#     " Pizza makes every meeting better.",
+#     " Jenkins pipelines are like coffee: the smoother, the better.",
+#     " Chocolate solves debugging stress."
+# ]
+
+@app.route("/", methods=["GET"])
+def fortune():
+    """Return a random fortune as JSON with proper Unicode."""
+    return jsonify({"fortune": random.choice(fortunes)})
 
 if __name__ == "__main__":
-    # When run directly (e.g. inside Docker), just print a fortune
-    result = lambda_handler()
-    print(result["body"])
+    # Run Flask server accessible from any host on port 5000
+    app.run(host="0.0.0.0", port=5000)
