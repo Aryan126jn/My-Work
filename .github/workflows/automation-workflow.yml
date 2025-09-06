@@ -5,7 +5,7 @@ on:
     branches:
       - Folder-1         # Change to your branch
     paths:
-      - 'app/**'  # Folder containing Dockerfile
+      - 'app/**'         # Folder containing Dockerfile
 
 jobs:
   deploy:
@@ -22,7 +22,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1   # or your region
+          aws-region: us-east-1   # your region
 
       # 3️⃣ Login to ECR
       - name: Login to Amazon ECR
@@ -42,25 +42,24 @@ jobs:
           IMAGE_TAG="${GITHUB_SHA::7}"
           docker push ${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG}
 
-     # 6️⃣ Deploy on EC2 using SSM
-      - name: Deploy to EC2
+      # 6️⃣ Update ECS service (EC2-backed)
+      - name: Update ECS Service
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Role,Values=FortuneApp" "Name=instance-state-name,Values=running" \
-            --query "Reservations[].Instances[].InstanceId" --output text)
-
           IMAGE_TAG="${GITHUB_SHA::7}"
+          # Register a new task definition revision with updated image
+          TASK_DEF_JSON=$(aws ecs describe-task-definition --task-definition fortune-task)
+          NEW_TASK_DEF=$(echo $TASK_DEF_JSON | jq --arg IMG "${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG}" \
+            '.taskDefinition | .containerDefinitions[0].image=$IMG | {family: .family, containerDefinitions: .containerDefinitions, networkMode: .networkMode, requiresCompatibilities: ["EC2"], cpu: .cpu, memory: .memory}') 
+          
+          echo "$NEW_TASK_DEF" > new-task-def.json
+          aws ecs register-task-definition --cli-input-json file://new-task-def.json
 
-          aws ssm send-command \
-            --targets "Key=instanceIds,Values=$INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --comment "Deploy Fortune Cookie App" \
-            --parameters 'commands=[
-              "docker login --username AWS --password $(aws ecr get-login-password --region us-east-1) ${{ secrets.ECR_REPO_URI }}",
-              "docker pull ${{ secrets.ECR_REPO_URI }}:'"${IMAGE_TAG}"'",
-              "docker stop fortune-cookie || true",
-              "docker rm fortune-cookie || true",
-              "docker run -d -p 5000:5000 --name fortune-cookie ${{ secrets.ECR_REPO_URI }}:'"${IMAGE_TAG}"'"
-            ]' \
-            --region us-east-1
+          # Get the latest revision
+          LATEST_TASK_DEF=$(aws ecs list-task-definitions --family-prefix fortune-task --sort DESC --query "taskDefinitionArns[0]" --output text)
 
+          # Update ECS service to use new task definition
+          aws ecs update-service \
+            --cluster fortune-cluster \
+            --service fortune-service \
+            --task-definition $LATEST_TASK_DEF \
+            --force-new-deployment
