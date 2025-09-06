@@ -12,3 +12,9 @@ variable "key_name" {
   description = "EC2 Key Pair name for SSH access"
   default     = "my-keypair" # replace with your key pair
 }
+
+variable "image_tag" {
+  description = "Docker image tag to deploy"
+  type        = string
+  default     = "latest"
+}

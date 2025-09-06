@@ -232,16 +232,15 @@ resource "aws_ecs_task_definition" "fortune_task" {
   family                   = "fortune-task"
   network_mode             = "bridge"       # EC2-compatible
   requires_compatibilities = ["EC2"]
-  cpu                      = "256"          # soft limit, adjust as needed
-  memory                   = "512"          # soft limit, adjust as needed
-    execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn      = aws_iam_role.ecs_task_execution_role.arn
-
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
     {
       name      = "fortune-container"
-      image     = "${aws_ecr_repository.app_repo.repository_url}:latest"
+      image     = "${aws_ecr_repository.app_repo.repository_url}:${var.image_tag}" # 🔹 changed here
       cpu       = 256
       memory    = 512
       essential = true
