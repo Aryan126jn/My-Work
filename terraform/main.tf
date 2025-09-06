@@ -56,7 +56,7 @@ resource "aws_security_group" "jenkins_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -220,7 +220,7 @@ resource "aws_ecs_task_definition" "fortune_task" {
   container_definitions = jsonencode([
     {
       name      = "fortune-container"
-      image     = "${aws_ecr_repository.app_repo.repository_url}:${var.image_tag}" # 🔹 changed here
+      image     = "${aws_ecr_repository.app_repo.repository_url}:${var.image_tag}" 
       cpu       = 256
       memory    = 400
       essential = true
