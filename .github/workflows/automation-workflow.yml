@@ -1,4 +1,4 @@
-name: Deploy Fortune Cookie App -m
+name: Deploy Fortune Cookie App
 
 on:
   push:
@@ -22,11 +22,10 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1   # or your region
+          aws-region: us-east-1
 
-      # 3️⃣ Login to ECR
+      # 3️⃣ Login to ECR locally
       - name: Login to Amazon ECR
-        id: ecr-login
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
 
@@ -52,11 +51,20 @@ jobs:
             --query "Reservations[].Instances[].InstanceId" --output text)
 
           IMAGE_TAG="${GITHUB_SHA::7}"
-          COMMAND="docker pull ${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG} && docker stop fortune-cookie || true && docker rm fortune-cookie || true && docker run -d -p 5000:5000 --name fortune-cookie ${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG}"
 
+          # Commands as a JSON array for SSM
+          COMMANDS='[
+            "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin '"${{ secrets.ECR_REPO_URI }}"'",
+            "docker pull '"${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG}"'",
+            "docker stop fortune-cookie || true",
+            "docker rm fortune-cookie || true",
+            "docker run -d -p 5000:5000 --name fortune-cookie '"${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG}"'"
+          ]'
+
+          # Send command via SSM
           aws ssm send-command \
             --targets "Key=instanceIds,Values=$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy Fortune Cookie App" \
-            --parameters commands="$COMMAND" \
+            --parameters commands="$COMMANDS" \
             --region us-east-1
