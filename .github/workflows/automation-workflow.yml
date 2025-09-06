@@ -22,12 +22,13 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1   # your region
+          aws-region: us-east-1   # change if needed
 
       # 3️⃣ Login to ECR
       - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
+          aws ecr get-login-password --region us-east-1 | \
+          docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
 
       # 4️⃣ Build and tag Docker image
       - name: Build Docker image
@@ -35,29 +36,48 @@ jobs:
           IMAGE_TAG="${GITHUB_SHA::7}"
           docker build -t fortune-cookie:latest ./app
           docker tag fortune-cookie:latest ${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG}
+          docker tag fortune-cookie:latest ${{ secrets.ECR_REPO_URI }}:latest
 
       # 5️⃣ Push Docker image to ECR
       - name: Push Docker image
         run: |
           IMAGE_TAG="${GITHUB_SHA::7}"
           docker push ${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG}
+          docker push ${{ secrets.ECR_REPO_URI }}:latest
 
       # 6️⃣ Update ECS service (EC2-backed)
       - name: Update ECS Service
         run: |
           IMAGE_TAG="${GITHUB_SHA::7}"
-          # Register a new task definition revision with updated image
+
+          # Fetch current task definition
           TASK_DEF_JSON=$(aws ecs describe-task-definition --task-definition fortune-task)
+
+          # Create new task definition JSON with updated image
           NEW_TASK_DEF=$(echo $TASK_DEF_JSON | jq --arg IMG "${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG}" \
-            '.taskDefinition | .containerDefinitions[0].image=$IMG | {family: .family, containerDefinitions: .containerDefinitions, networkMode: .networkMode, requiresCompatibilities: ["EC2"], cpu: .cpu, memory: .memory}') 
-          
+            '.taskDefinition 
+            | { 
+                family: .family,
+                networkMode: .networkMode,
+                requiresCompatibilities: .requiresCompatibilities,
+                cpu: .cpu,
+                memory: .memory,
+                executionRoleArn: .executionRoleArn,
+                taskRoleArn: .taskRoleArn,
+                containerDefinitions: (.containerDefinitions | map(.image = $IMG))
+              }')
+
           echo "$NEW_TASK_DEF" > new-task-def.json
+
+          # Register new revision
           aws ecs register-task-definition --cli-input-json file://new-task-def.json
 
-          # Get the latest revision
-          LATEST_TASK_DEF=$(aws ecs list-task-definitions --family-prefix fortune-task --sort DESC --query "taskDefinitionArns[0]" --output text)
+          # Get the latest revision ARN
+          LATEST_TASK_DEF=$(aws ecs list-task-definitions \
+            --family-prefix fortune-task --sort DESC \
+            --query "taskDefinitionArns[0]" --output text)
 
-          # Update ECS service to use new task definition
+          # Update ECS service
           aws ecs update-service \
             --cluster fortune-cluster \
             --service fortune-service \
