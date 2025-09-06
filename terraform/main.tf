@@ -53,7 +53,7 @@ resource "aws_security_group" "jenkins_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # SSH
+    cidr_blocks = ["0.0.0.0/0"] # SSH (restrict later)
   }
 
   ingress {
@@ -93,8 +93,39 @@ resource "aws_ecr_repository" "app_repo" {
   image_tag_mutability = "MUTABLE"
 }
 
+# ECR Lifecycle Policy (keep last 5 images)
+resource "aws_ecr_lifecycle_policy" "app_repo_policy" {
+  repository = aws_ecr_repository.app_repo.name
+
+  policy = <<EOF
+{
+  "rules": [
+    {
+      "rulePriority": 1,
+      "description": "Keep last 5 images",
+      "selection": {
+        "tagStatus": "any",
+        "countType": "imageCountMoreThan",
+        "countNumber": 5
+      },
+      "action": {
+        "type": "expire"
+      }
+    }
+  ]
+}
+EOF
+}
+
 # ------------------------
-# IAM Role for EC2 (ECR Push + SSM + EC2 Describe)
+# ECS Cluster
+# ------------------------
+resource "aws_ecs_cluster" "fortune_cluster" {
+  name = "fortune-cluster"
+}
+
+# ------------------------
+# IAM Role for EC2
 # ------------------------
 resource "aws_iam_role" "ec2_fortuneapp_role" {
   name = "ec2-fortuneapp-role"
@@ -109,6 +140,7 @@ resource "aws_iam_role" "ec2_fortuneapp_role" {
   })
 }
 
+# Custom EC2 policy (mainly for ECR push, keep for demo completeness)
 resource "aws_iam_policy" "ec2_fortuneapp_policy" {
   name        = "ec2-fortuneapp-policy"
   description = "Allow EC2 to push Docker to ECR and use SSM"
@@ -140,9 +172,7 @@ resource "aws_iam_policy" "ec2_fortuneapp_policy" {
       },
       {
         Effect = "Allow",
-        Action = [
-          "ec2:DescribeInstances"
-        ],
+        Action = ["ec2:DescribeInstances"],
         Resource = "*"
       }
     ]
@@ -154,49 +184,119 @@ resource "aws_iam_role_policy_attachment" "attach_ec2_policy" {
   policy_arn = aws_iam_policy.ec2_fortuneapp_policy.arn
 }
 
+# Attach managed policies for ECS/ECR/SSM
+resource "aws_iam_role_policy_attachment" "attach_ecs_instance_managed" {
+  role       = aws_iam_role.ec2_fortuneapp_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+}
+
+resource "aws_iam_role_policy_attachment" "attach_ecr_read_managed" {
+  role       = aws_iam_role.ec2_fortuneapp_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+resource "aws_iam_role_policy_attachment" "attach_ssm_managed" {
+  role       = aws_iam_role.ec2_fortuneapp_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 resource "aws_iam_instance_profile" "ec2_fortuneapp_profile" {
   name = "ec2-fortuneapp-profile"
   role = aws_iam_role.ec2_fortuneapp_role.name
 }
 
 # ------------------------
-# Fetch latest Amazon Linux 2 AMI dynamically
+# ECS Task Execution Role (for Phase 2, created now)
 # ------------------------
-data "aws_ami" "amazon_linux" {
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "ecs-task-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action = "sts:AssumeRole",
+      Principal = { Service = "ecs-tasks.amazonaws.com" },
+      Effect = "Allow"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_exec_attach" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+# ------------------------
+# ECS Task Definition (Phase 2, Step 1 - EC2-compatible)
+# ------------------------
+resource "aws_ecs_task_definition" "fortune_task" {
+  family                   = "fortune-task"
+  network_mode             = "bridge"       # EC2-compatible
+  requires_compatibilities = ["EC2"]
+  cpu                      = "256"          # soft limit, adjust as needed
+  memory                   = "512"          # soft limit, adjust as needed
+
+  container_definitions = jsonencode([
+    {
+      name      = "fortune-container"
+      image     = "${aws_ecr_repository.app_repo.repository_url}:latest"
+      cpu       = 256
+      memory    = 512
+      essential = true
+      portMappings = [
+        {
+          containerPort = 5000
+          hostPort      = 5000
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/fortune"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
+    }
+  ])
+}
+
+
+# ------------------------
+# Fetch ECS-optimized AMI
+# ------------------------
+data "aws_ami" "ecs_optimized" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    values = ["amzn2-ami-ecs-hvm-*-x86_64-ebs"]
   }
 }
 
 # ------------------------
-# EC2 Instance (Jenkins & App)
+# EC2 Instance (ECS Node)
 # ------------------------
 resource "aws_instance" "jenkins_server" {
-  ami                         = data.aws_ami.amazon_linux.id
+  ami                         = data.aws_ami.ecs_optimized.id
   instance_type               = "t2.micro" # free tier eligible
   subnet_id                   = aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.jenkins_sg.id]
   associate_public_ip_address = true
   iam_instance_profile        = aws_iam_instance_profile.ec2_fortuneapp_profile.name
-
-  tags = {
+  key_name                    = "my-keypair"  
+  
+   tags = {
     Name = "JenkinsServer"
     Role = "FortuneApp"
   }
 
   user_data = <<-EOF
               #!/bin/bash
-              # Install Docker if not present
-              if ! command -v docker &> /dev/null; then
-                  yum update -y
-                  amazon-linux-extras install docker -y
-                  service docker start
-                  usermod -a -G docker ec2-user
-              fi
+              echo ECS_CLUSTER=${aws_ecs_cluster.fortune_cluster.name} >> /etc/ecs/ecs.config
+              systemctl enable --now ecs || true
+              yum install -y amazon-ssm-agent || true
+              systemctl enable --now amazon-ssm-agent || true
               EOF
 }
 
