@@ -12,15 +12,15 @@ app = Flask(__name__)
 
 # Optional: Food-themed fortunes
 food_fortunes = [
-     " Pizza makes every meeting better.",
-     " Jenkins pipelines are like coffee: the  smoother, the betterr.",
-     " Chocolate solves debugging stress."
+     " Pizza makes every meeting better.!",
+     " Jenkins pipelines are like coffee: !the  smoother, the betterr.",
+     " Chocolate solves debugging stress!."
  ]
 
 @app.route("/", methods=["GET"])
 def fortune():
     """Return a random fortune as JSON with proper Unicode."""
-    return jsonify({"food_fortune": random.choice(food_fortunes)})
+    return jsonify({"fortune": random.choice(food_fortunes)})
 
 if __name__ == "__main__":
     # Run Flask server accessible from any host on port 5000
