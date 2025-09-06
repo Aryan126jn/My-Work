@@ -68,7 +68,6 @@ jobs:
                 memory: .memory,
                 executionRoleArn: .executionRoleArn,
                 taskRoleArn: .taskRoleArn,
-                runtimePlatform: .runtimePlatform,
                 containerDefinitions: (.containerDefinitions | map(.image = $IMG))
               }')
 
