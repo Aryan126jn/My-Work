@@ -14,7 +14,7 @@ fortunes = [
 # Optional: Food-themed fortunes
 # food_fortunes = [
 #     " Pizza makes every meeting better.",
-#     " Jenkins pipelines are like coffee: the  smoother, the betterr.",
+#     " Jenkins pipelines are like coffee: the  smoother, the better.",
 #     " Chocolate solves debugging stress."
 # ]
 
