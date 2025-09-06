@@ -1,4 +1,4 @@
-name: Deploy Fortune Cookie App
+name: Deploy Fortune Cookie App using ECS
 
 on:
   push:
@@ -6,6 +6,10 @@ on:
       - Folder-1         # Change to your branch
     paths:
       - 'app/**'         # Folder containing Dockerfile
+
+env:
+  AWS_REGION: us-east-1
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   deploy:
@@ -22,39 +26,39 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1   # change if needed
+          aws-region: ${{ env.AWS_REGION }}
 
       # 3️⃣ Login to ECR
       - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region us-east-1 | \
+          aws ecr get-login-password --region $AWS_REGION | \
           docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
 
       # 4️⃣ Build and tag Docker image
       - name: Build Docker image
         run: |
-          IMAGE_TAG="${GITHUB_SHA::7}"
+          SHORT_TAG=${IMAGE_TAG::7}
           docker build -t fortune-cookie:latest ./app
-          docker tag fortune-cookie:latest ${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG}
+          docker tag fortune-cookie:latest ${{ secrets.ECR_REPO_URI }}:$SHORT_TAG
           docker tag fortune-cookie:latest ${{ secrets.ECR_REPO_URI }}:latest
 
       # 5️⃣ Push Docker image to ECR
       - name: Push Docker image
         run: |
-          IMAGE_TAG="${GITHUB_SHA::7}"
-          docker push ${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG}
+          SHORT_TAG=${IMAGE_TAG::7}
+          docker push ${{ secrets.ECR_REPO_URI }}:$SHORT_TAG
           docker push ${{ secrets.ECR_REPO_URI }}:latest
 
-      # 6️⃣ Update ECS service (EC2-backed)
+      # 6️⃣ Update ECS service
       - name: Update ECS Service
         run: |
-          IMAGE_TAG="${GITHUB_SHA::7}"
+          SHORT_TAG=${IMAGE_TAG::7}
 
           # Fetch current task definition
           TASK_DEF_JSON=$(aws ecs describe-task-definition --task-definition fortune-task)
 
-          # Create new task definition JSON with updated image
-          NEW_TASK_DEF=$(echo $TASK_DEF_JSON | jq --arg IMG "${{ secrets.ECR_REPO_URI }}:${IMAGE_TAG}" \
+          # Create new revision with updated image
+          NEW_TASK_DEF=$(echo $TASK_DEF_JSON | jq --arg IMG "${{ secrets.ECR_REPO_URI }}:$SHORT_TAG" \
             '.taskDefinition 
             | { 
                 family: .family,
@@ -64,6 +68,7 @@ jobs:
                 memory: .memory,
                 executionRoleArn: .executionRoleArn,
                 taskRoleArn: .taskRoleArn,
+                runtimePlatform: .runtimePlatform,
                 containerDefinitions: (.containerDefinitions | map(.image = $IMG))
               }')
 
