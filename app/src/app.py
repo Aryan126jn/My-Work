@@ -20,7 +20,7 @@ food_fortunes = [
 @app.route("/", methods=["GET"])
 def fortune():
     """Return a random fortune as JSON with proper Unicode."""
-    return jsonify({"fortune": random.choice(food_fortunes)})
+    return jsonify({"food_fortune": random.choice(food_fortunes)})
 
 if __name__ == "__main__":
     # Run Flask server accessible from any host on port 5000
