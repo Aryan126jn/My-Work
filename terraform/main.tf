@@ -234,6 +234,9 @@ resource "aws_ecs_task_definition" "fortune_task" {
   requires_compatibilities = ["EC2"]
   cpu                      = "256"          # soft limit, adjust as needed
   memory                   = "512"          # soft limit, adjust as needed
+    execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn      = aws_iam_role.ecs_task_execution_role.arn
+
 
   container_definitions = jsonencode([
     {
