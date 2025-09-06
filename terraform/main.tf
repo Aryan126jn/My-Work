@@ -49,34 +49,14 @@ resource "aws_route_table_association" "public_assoc" {
 resource "aws_security_group" "jenkins_sg" {
   vpc_id = aws_vpc.main.id
 
+  # Ingress: all ports open
   ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # SSH (restrict later)
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Jenkins UI
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # HTTP
-  }
-
-  ingress {
-    from_port   = 5000
-    to_port     = 5000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # App port
-  }
-
+  
   egress {
     from_port   = 0
     to_port     = 0
@@ -247,7 +227,8 @@ resource "aws_ecs_task_definition" "fortune_task" {
       portMappings = [
         {
           containerPort = 5000
-          hostPort      = 5000
+          hostPort      = 0
+          protocol = "tcp"
         }
       ]
       logConfiguration = {
