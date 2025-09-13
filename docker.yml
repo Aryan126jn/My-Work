@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+
+  mock_cost_exporter:
+    image: mock_cost_exporter
+    container_name: mock_cost_exporter
+    ports:
+      - "8000:8000"
+
+  aws_exporter:
+    build: ./aws_export
+    container_name: aws_exporter
+    volumes:
+      - ${USERPROFILE}/.aws:/root/.aws:ro   # mount AWS creds from host
+    ports:
+      - "8001:8001"
+    environment:
+      - AWS_PROFILE=Aryan
+      - AWS_REGION=us-east-1   # set your actual region
+
+volumes:
+  prometheus_data:
+  grafana_data:
