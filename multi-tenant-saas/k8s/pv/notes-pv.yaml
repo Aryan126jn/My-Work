@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: notes-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""       # Make sure this matches your PVC
+  hostPath:
+    path: /run/desktop/mnt/host/c/Users/asus/resume-maj-project/multi-tenant-saas/data/notes-db # must exist on disk
+    type: DirectoryOrCreate 
+
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: notes-pvc
+  namespace: tenant-a
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: ""

@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  notes-app:
+    build: ./apps/notes-app
+    container_name: notes-app
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    mem_limit: 512m
+
+  expense-tracker:
+    build: ./apps/expense-tracker
+    container_name: expense-tracker
+    ports:
+      - "5001:5000"
+    restart: unless-stopped
+    mem_limit: 512m

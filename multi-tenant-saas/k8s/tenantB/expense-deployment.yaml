@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: expense-deployment
+  namespace: tenant-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: expense-tracker
+  template:
+    metadata:
+      labels:
+        app: expense-tracker
+    spec:
+      containers:
+      - name: expense-tracker
+        image: expense-tracker:latest
+        ports:
+        - containerPort: 5001
+        resources:
+          limits:
+            memory: "128Mi"
+        volumeMounts:
+        - name: expense-db-storage
+          mountPath: /app/db
+      volumes:
+      - name: expense-db-storage
+        persistentVolumeClaim:
+          claimName: expense-pvc

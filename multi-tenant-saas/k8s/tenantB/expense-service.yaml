@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: expense-service
+  namespace: tenant-b
+spec:
+  selector:
+    app: expense-tracker
+  ports:
+    - protocol: TCP
+      port: 5001  #not necessary to have port value = targetport value
+      targetPort: 5001
+  type: ClusterIP
