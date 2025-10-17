@@ -35,7 +35,7 @@ jobs:
           context: ./multi-tenant-saas/apps/notes-app
           file: ./multi-tenant-saas/apps/notes-app/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/notes-app:latest
+          tags: arynsh/notes-app:latest
 
       # Step 5: Build and push Expense Tracker App
       - name: Build and push Expense Tracker App
