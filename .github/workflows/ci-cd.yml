@@ -44,4 +44,4 @@ jobs:
           context: ./multi-tenant-saas/apps/expense-tracker
           file: ./multi-tenant-saas/apps/expense-tracker/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/expense-tracker:latest
+          tags: arynsh/expense-tracker:latest
