@@ -1,47 +1,78 @@
-name: Build and Push Docker Images
+name: Build & Push Docker Images to ECR
 
 on:
   push:
     branches:
-      - Folder-3
+      - Folder-3  # adjust to your branch
   pull_request:
     branches:
       - Folder-3
+
+env:
+  AWS_REGION: us-east-1
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code
+      # 1️⃣ Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up Docker Buildx (for cross-platform builds)
+      # 2️⃣ Configure AWS credentials
+      - name: Configure AWS CLI
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 3️⃣ Terraform init + get outputs
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Get ECR URIs from Terraform
+        working-directory: ./terraform
+        id: tf_ecr
+        run: |
+          NOTES_ECR_URI=$(terraform output -raw notes_ecr_repo_url)
+          EXPENSE_ECR_URI=$(terraform output -raw expense_ecr_repo_url)
+          echo "NOTES_ECR_URI=$NOTES_ECR_URI" >> $GITHUB_ENV
+          echo "EXPENSE_ECR_URI=$EXPENSE_ECR_URI" >> $GITHUB_ENV
+
+      # 4️⃣ Login to ECR
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin $NOTES_ECR_URI
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin $EXPENSE_ECR_URI
+
+      # 5️⃣ Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Step 3: Log in to Docker Hub
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      # Step 4: Build and push Notes App
-      - name: Build and push Notes App
+      # 6️⃣ Build and push Notes App
+      - name: Build & Push Notes App
         uses: docker/build-push-action@v6
         with:
           context: ./multi-tenant-saas/apps/notes-app
           file: ./multi-tenant-saas/apps/notes-app/Dockerfile
           push: true
-          tags: arynsh/notes-app:latest
+          tags: |
+            $NOTES_ECR_URI:latest
+            $NOTES_ECR_URI:${{ github.sha }}
 
-      # Step 5: Build and push Expense Tracker App
-      - name: Build and push Expense Tracker App
+      # 7️⃣ Build and push Expense Tracker
+      - name: Build & Push Expense Tracker
         uses: docker/build-push-action@v6
         with:
           context: ./multi-tenant-saas/apps/expense-tracker
           file: ./multi-tenant-saas/apps/expense-tracker/Dockerfile
           push: true
-          tags: arynsh/expense-tracker:latest
+          tags: |
+            $EXPENSE_ECR_URI:latest
+            $EXPENSE_ECR_URI:${{ github.sha }}
