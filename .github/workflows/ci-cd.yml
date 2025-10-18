@@ -51,8 +51,8 @@ jobs:
           file: ./multi-tenant-saas/apps/notes-app/Dockerfile
           push: true
           tags: |
-            $NOTES_ECR_URI:latest
-            $NOTES_ECR_URI:${{ github.sha }}
+            ${{ env.NOTES_ECR_URI }}:latest
+            ${{ env.NOTES_ECR_URI }}:${{ github.sha }}
 
       # 6️⃣ Build and push Expense Tracker
       - name: Build & Push Expense Tracker
@@ -62,5 +62,5 @@ jobs:
           file: ./multi-tenant-saas/apps/expense-tracker/Dockerfile
           push: true
           tags: |
-            $EXPENSE_ECR_URI:latest
-            $EXPENSE_ECR_URI:${{ github.sha }}
+            ${{ env.EXPENSE_ECR_URI }}:latest
+            ${{ env.EXPENSE_ECR_URI }}:${{ github.sha }}
