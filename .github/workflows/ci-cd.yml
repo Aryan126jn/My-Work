@@ -31,11 +31,11 @@ jobs:
 
       # 3️⃣ Terraform init + get outputs
       - name: Terraform Init
-        working-directory: ./terraform
+        working-directory: ./multi-tenant-saas/terraform
         run: terraform init
 
       - name: Get ECR URIs from Terraform
-        working-directory: ./terraform
+        working-directory: ./multi-tenant-saas/terraform
         id: tf_ecr
         run: |
           NOTES_ECR_URI=$(terraform output -raw notes_ecr_repo_url)
