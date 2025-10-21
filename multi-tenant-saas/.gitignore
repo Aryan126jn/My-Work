@@ -24,7 +24,7 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Terraform directories
+# Terraform local files
 .terraform/
 *.tfstate
 *.tfstate.*
