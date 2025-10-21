@@ -7,11 +7,13 @@ spec:
     storage: 1Gi
   accessModes:
     - ReadWriteOnce
-  storageClassName: ""
+  storageClassName: ebs-sc    # must match PVC
   hostPath:
     path: /run/desktop/mnt/host/c/Users/asus/resume-maj-project/multi-tenant-saas/data/expense-db
-    type: DirectoryOrCreate 
-
+    type: DirectoryOrCreate
+  claimRef:
+    namespace: tenant-b
+    name: expense-pvc
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -24,4 +26,4 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: ""
+  storageClassName: ebs-sc

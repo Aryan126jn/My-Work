@@ -15,16 +15,20 @@ spec:
     spec:
       containers:
       - name: expense-tracker
-        image: expense-tracker:latest
+        image: 320372421165.dkr.ecr.us-east-1.amazonaws.com/expense-tracker:latest
         ports:
         - containerPort: 5001
         resources:
+          requests:
+            memory: 64Mi
+            cpu: 50m
           limits:
-            memory: "128Mi"
+            memory: 128Mi
+            cpu: 100m
         volumeMounts:
-        - name: expense-db-storage
+        - name: expense-storage
           mountPath: /app/db
       volumes:
-      - name: expense-db-storage
-        persistentVolumeClaim:
-          claimName: expense-pvc
+      - name: expense-storage
+        emptyDir: {}
+

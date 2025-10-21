@@ -14,6 +14,11 @@ def init_db():
         """)
         conn.commit()
 
+@app.route("/")
+def home():
+    return "This is the Notes App!"
+
+
 @app.route("/items", methods=["GET"])
 def get_items():
     with sqlite3.connect(DB_PATH) as conn:

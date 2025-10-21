@@ -7,11 +7,14 @@ spec:
     storage: 1Gi
   accessModes:
     - ReadWriteOnce
-  storageClassName: ""       # Make sure this matches your PVC
+  storageClassName: ebs-sc    # must match PVC
   hostPath:
-    path: /run/desktop/mnt/host/c/Users/asus/resume-maj-project/multi-tenant-saas/data/notes-db # must exist on disk
-    type: DirectoryOrCreate 
-
+    path: /run/desktop/mnt/host/c/Users/asus/resume-maj-project/multi-tenant-saas/data/notes-db
+    type: DirectoryOrCreate
+  claimRef:
+    namespace: tenant-a
+    name: notes-pvc
+ 
 
 ---
 apiVersion: v1
@@ -25,4 +28,5 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: ""
+  storageClassName: ebs-sc
+

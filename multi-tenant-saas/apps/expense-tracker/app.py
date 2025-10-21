@@ -15,6 +15,11 @@ def init_db():
         """)
         conn.commit()
 
+@app.route("/")
+def home():
+    return "Welcome to MyDaily SaaS - Expense Tracker!"
+
+
 @app.route("/items", methods=["GET"])
 def get_items():
     with sqlite3.connect(DB_PATH) as conn:

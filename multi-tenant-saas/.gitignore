@@ -1,0 +1,25 @@
+# Local data
+data/
+*.db
+
+# Kubernetes
+*.kubeconfig
+.kube/
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Docker
+*.tar
+/build/
+
+# VSCode / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

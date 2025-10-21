@@ -15,16 +15,20 @@ spec:
     spec:
       containers:
       - name: notes-app
-        image: notes-app:latest
+        image: 320372421165.dkr.ecr.us-east-1.amazonaws.com/notes-app:latest
         ports:
         - containerPort: 5000
         resources:
+          requests:
+            memory: 64Mi
+            cpu: 50m
           limits:
-            memory: "128Mi"
+            memory: 128Mi
+            cpu: 100m
         volumeMounts:
-        - name: notes-db-storage
+        - name: notes-storage
           mountPath: /app/db
       volumes:
-      - name: notes-db-storage
-        persistentVolumeClaim:
-          claimName: notes-pvc
+      - name: notes-storage
+        emptyDir: {}
+
