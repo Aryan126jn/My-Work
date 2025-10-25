@@ -1,0 +1,6 @@
+adminUser: admin
+adminPassword: admin
+service:
+  type: ClusterIP
+persistence:
+  enabled: false
